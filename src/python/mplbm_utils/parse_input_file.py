@@ -67,7 +67,7 @@ def parse_input_file(input_file):
             raise KeyError("Please add 'data type' entry to 'geometry'.")
 
         if 'geometry size' in inputs['geometry']:
-            if 'Nx' and 'Ny' and 'Nz' in inputs['geometry']['geometry size']:
+            if all(k in inputs['geometry']['geometry size'] for k in ('Nx', 'Ny', 'Nz')):
                 Nx = inputs['geometry']['geometry size']['Nx']
                 Ny = inputs['geometry']['geometry size']['Ny']
                 Nz = inputs['geometry']['geometry size']['Nz']
@@ -92,7 +92,7 @@ def parse_input_file(input_file):
             print("Geometry Name: " + inputs['domain']['geom name'])
 
         if 'domain size' in inputs['domain']:
-            if 'nx' and 'ny' and 'nz' in inputs['domain']['domain size']:
+            if all(k in inputs['domain']['domain size'] for k in ('nx', 'ny', 'nz')):
                 nx = inputs['domain']['domain size']['nx']
                 ny = inputs['domain']['domain size']['ny']
                 nz = inputs['domain']['domain size']['nz']
@@ -101,7 +101,7 @@ def parse_input_file(input_file):
                 raise KeyError("Please make sure nx, ny, and nz are in the 'domain size' entry")
 
         if 'periodic boundary' in inputs['domain']:
-            if 'x' and 'y' and 'z' in inputs['domain']['periodic boundary']:
+            if all(k in inputs['domain']['periodic boundary'] for k in ('x', 'y', 'z')):
                 pass
             else:
                 raise KeyError("Please make sure x, y, and z are in the 'periodic boundary' entry")
@@ -201,7 +201,7 @@ def parse_input_file(input_file):
             else:
                 raise KeyError("Please add 'force_f2' to 'simulation' entry.")
 
-            if inputs['simulation']['pressure bc'] == True:
+            if inputs['simulation']['pressure bc']:
 
                 if 'minimum radius' in inputs['simulation']:
                     print("Minimum radius of invasion (voxels): " + str(inputs['simulation']['minimum radius']))

@@ -1,9 +1,7 @@
 import numpy as np
 from skimage import measure
 import skimage.transform as skit
-from scipy.ndimage.morphology import distance_transform_edt as edist
 import re
-import os
 from edt import edt
 import porespy as ps
 
@@ -16,7 +14,7 @@ def create_geom_edist(rock, args, nw_fluid_mask):
     if args.scale_2:
         NotImplementedError('Feature not yet implemented')
 
-    erock = edist(rock)
+    erock = edt(rock)
 
     # make sure all the BCs have bounce back nodes
     erock[0, :, :] = 1
@@ -67,7 +65,7 @@ def create_nw_fluid_mask(rock, args):
     if args.swapXZ:
         rock_tmp = rock_tmp.transpose([2, 1, 0])
     if args.num_slices:
-        if args.set_inlet_outlet_fluids == True:
+        if args.set_inlet_outlet_fluids:
             if args.inlet_fluid == 'fluid 1':
                 inlet_fluid = 3  # Set to fluid 1, NW phase
             elif args.inlet_fluid == 'fluid 2':
@@ -140,7 +138,7 @@ def run_porespy_drainage(inputs, wetting_angle, voxel_size):
     image = image[0:nz, 0:ny, 0:nx]
 
     # Take into account user specified orientation
-    if swap_xz == True:
+    if swap_xz:
         image = image.transpose([2, 1, 0])
 
     image = ~np.array(image, dtype=bool)  # Convert to bool and invert pores and grains for PoreSpy format
@@ -186,7 +184,7 @@ def scale_geometry(geom, rescale_factor, data_type):
                         order=0)  # order=0 means nearest neighbor interpolation (keeps image binary)
 
     # Ensure image has 0 as pore space and 1 as grains
-    geom = edist(geom)
+    geom = edt(geom)
     geom[geom==0] = 0
     geom[geom>0] = 1
 
@@ -197,32 +195,39 @@ def scale_geometry(geom, rescale_factor, data_type):
 
 
 def natural_sort(l):
+    def convert(text):
+        return int(text) if text.isdigit() else text.lower()
 
-    convert = lambda text: int(text) if text.isdigit() else text.lower()
-    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+    def alphanum_key(key):
+        return [convert(c) for c in re.split('([0-9]+)', key)]
 
     return sorted(l, key=alphanum_key)
 
 
 def find_line_in_file(file_name, line_to_match, data_to_add_line_index):
 
-    file = open(file_name)
-    data = np.array([])
+    with open(file_name) as f:
+        data = np.array([])
 
-    for line in file:
-        if line_to_match in line:
-            line_split = line.split()
-            data = np.append(data, float(line_split[data_to_add_line_index]))
-
-    file.close()
+        for line in f:
+            if line_to_match in line:
+                line_split = line.split()
+                data = np.append(data, float(line_split[data_to_add_line_index]))
 
     return data
 
 
 def replace_line_in_file(file_to_edit, line_to_find_and_replace, replacement_line):
 
-    search_and_replace_command = 'sed -i "/^' + line_to_find_and_replace + r"/c\\" + replacement_line + '" ' + file_to_edit
-    os.system(search_and_replace_command)
+    with open(file_to_edit, 'r') as f:
+        lines = f.readlines()
+
+    with open(file_to_edit, 'w') as f:
+        for line in lines:
+            if line.startswith(line_to_find_and_replace):
+                f.write(replacement_line + '\n')
+            else:
+                f.write(line)
 
     return
 

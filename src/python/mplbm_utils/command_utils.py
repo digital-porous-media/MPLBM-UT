@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from scipy.ndimage import distance_transform_edt as edist, convolve, binary_dilation, label
-from scipy.ndimage import label, sum as ndi_sum
+from scipy.ndimage import sum as ndi_sum
 from .pore_utils import scale_geometry
 
 def load_geometry(args):
@@ -12,7 +12,7 @@ def load_geometry(args):
     return scaled_geom
 
 def stack_geometry(geom, args):
-    if args.use_2d_stack==False:
+    if not args.use_2d_stack:
         start_idx = [geom.shape[i]//2 - args.sim_geometry_size[i]//2 for i in range(3)]
         stop_idx = [start_idx[i] + args.sim_geometry_size[i] for i in range(3)]
         micromodel = geom[start_idx[0]:stop_idx[0], start_idx[1]:stop_idx[1], start_idx[2]:stop_idx[2]]
@@ -43,7 +43,7 @@ def initialize_simulation_matrix(rock, wetting_saturation_ratio=0.5):
     # Ensure all the BCs have bounce back nodes
     erock[0, :, :] = 1
     erock[:, 0, :] = 1
-    erock[: :, 0] = 1
+    erock[:, :, 0] = 1
     erock[-1, :, :] = 1
     erock[:, -1, :] = 1
     erock[:, :, -1] = 1    
@@ -111,7 +111,7 @@ def create_two_phase_input_file_2(args):
     
     restart_sim = args.restart_sim
     
-    if args.pressure_bc == True:
+    if args.pressure_bc:
         minimum_radius = args.minimum_radius
         num_pc_steps = args.num_pressure_steps
     else:
@@ -129,71 +129,70 @@ def create_two_phase_input_file_2(args):
         os.makedirs(args.input_dir)
         
     # Create/open input file
-    file = open(f'{input_folder}{input_xml_file}', 'w+')
-    file.write('<?xml version="1.0" ?>\n\n')  # Write xml header
-    
-    # Restart sim?
-    file.write(f'<load_savedstated> {restart_sim} </load_savedstated>\n\n')
-    
-    # Write geometry section
-    file.write('<geometry>\n')
-    # Geometry name
-    file.write(f'\t<file_geom> {geom_name} </file_geom>\n')
-    # Geometry size
-    file.write(f'\t<size> <x> {nx} </x> <y> {ny} </y> <z> {nz} </z> </size>\n')
-    # Periodicity
-    file.write(f'\t<per>\n')
-    file.write(f'\t\t<fluid1> <x> {periodic[0]} </x> <y> {periodic[1]} </y> <z> {periodic[2]} </z> </fluid1>\n')
-    file.write(f'\t\t<fluid2> <x> {periodic[0]} </x> <y> {periodic[1]} </y> <z> {periodic[2]} </z> </fluid2>\n')
-    file.write(f'\t</per>\n')
-    file.write('</geometry>\n\n')
-    
-    # Write initial position of fluids
-    file.write(f'<init>\n')
-    file.write(f'\t<fluid_from_geom> {load_fluid_from_geom} </fluid_from_geom>\n')
-    file.write(f'\t<fluid1>\n')
-    file.write(f'\t\t <x1> {args.fluid_1_init[0]} </x1> <y1> {args.fluid_1_init[1]} </y1> <z1> {args.fluid_1_init[2]} </z1>\n')
-    file.write(f'\t\t <x2> {args.fluid_1_init[3]} </x2> <y2> {args.fluid_1_init[4]} </y2> <z2> {args.fluid_1_init[5]} </z2>\n')
-    file.write(f'\t</fluid1>\n')
-    file.write(f'\t<fluid2>\n')
-    file.write(f'\t\t <x1> {args.fluid_2_init[0]} </x1> <y1> {args.fluid_2_init[1]} </y1> <z1> {args.fluid_2_init[2]} </z1>\n')
-    file.write(f'\t\t <x2> {args.fluid_2_init[3]} </x2> <y2> {args.fluid_2_init[4]} </y2> <z2> {args.fluid_2_init[5]} </z2>\n')
-    file.write(f'\t</fluid2>\n')
-    file.write('</init>\n\n')
-    
-    # Write fluid data
-    file.write('<fluids>\n')   
-    file.write(f'\t<Gc> {args.Gc} </Gc>\n')
-    file.write(f'\t<omega_f1> {args.omega_f1} </omega_f1>\n')
-    file.write(f'\t<omega_f2> {args.omega_f2} </omega_f2>\n')
-    file.write(f'\t<force_f1> {args.force_f1} </force_f1>\n')
-    file.write(f'\t<force_f2> {args.force_f2} </force_f2>\n')
-    file.write(f'\t<G_ads_f1_s1> {args.G_ads_f1_s1} </G_ads_f1_s1>\n')
-    file.write(f'\t<G_ads_f1_s2> {args.G_ads_f1_s2} </G_ads_f1_s2>\n')
-    file.write(f'\t<G_ads_f1_s3> {args.G_ads_f1_s3} </G_ads_f1_s3>\n')
-    file.write(f'\t<G_ads_f1_s4> {args.G_ads_f1_s4} </G_ads_f1_s4>\n')    
-    file.write(f'\t<rho_f1> {args.rho_f1} </rho_f1>\n')
-    file.write(f'\t<rho_f2> {args.rho_f2} </rho_f2>\n')    
-    file.write(f'\t<pressure_bc> {args.pressure_bc} </pressure_bc>\n')
-    file.write(f'\t<rho_f1_i> {args.rho_f1} </rho_f1_i>\n')
-    file.write(f'\t<rho_f2_i> {args.rho_f2} </rho_f2_i>\n')
-    file.write(f'\t<num_pc_steps> {num_pc_steps} </num_pc_steps>\n')
-    file.write(f'\t<min_radius> {minimum_radius} </min_radius>\n')
-    file.write(f'\t<rho_d> 0.06 </rho_d>\n')    
-    file.write('</fluids>\n\n')    
-    # Write output section
-    file.write('<output>\n')    
-    file.write(f'\t<out_folder> {output_folder} </out_folder>\n')
-    file.write(f'\t<save_it> {args.save_iter} </save_it>\n')
-    file.write(f'\t<save_sim> {args.save_sim} </save_sim>\n')
-    file.write(f'\t<convergence> {args.convergence} </convergence>\n')
-    file.write(f'\t<it_max> {args.max_iterations} </it_max>\n')
-    file.write(f'\t<it_conv> {args.convergence_iter} </it_conv>\n')
-    file.write(f'\t<it_gif> {args.gif_iter} </it_gif>\n')
-    file.write(f'\t<rho_vtk> {args.rho_f2_vtk} </rho_vtk>\n')
-    file.write(f'\t<it_vtk> {args.vtk_iter} </it_vtk>\n')
-    file.write(f'\t<print_geom> {args.print_geom} </print_geom>\n')
-    file.write(f'\t<print_stl> {args.print_stl} </print_stl>\n')    
-    file.write('</output>')    
-    file.close()    
+    with open(f'{input_folder}{input_xml_file}', 'w+') as f:
+        f.write('<?xml version="1.0" ?>\n\n')  # Write xml header
+        
+        # Restart sim?
+        f.write(f'<load_savedstated> {restart_sim} </load_savedstated>\n\n')
+        
+        # Write geometry section
+        f.write('<geometry>\n')
+        # Geometry name
+        f.write(f'\t<file_geom> {geom_name} </file_geom>\n')
+        # Geometry size
+        f.write(f'\t<size> <x> {nx} </x> <y> {ny} </y> <z> {nz} </z> </size>\n')
+        # Periodicity
+        f.write(f'\t<per>\n')
+        f.write(f'\t\t<fluid1> <x> {periodic[0]} </x> <y> {periodic[1]} </y> <z> {periodic[2]} </z> </fluid1>\n')
+        f.write(f'\t\t<fluid2> <x> {periodic[0]} </x> <y> {periodic[1]} </y> <z> {periodic[2]} </z> </fluid2>\n')
+        f.write(f'\t</per>\n')
+        f.write('</geometry>\n\n')
+        
+        # Write initial position of fluids
+        f.write(f'<init>\n')
+        f.write(f'\t<fluid_from_geom> {load_fluid_from_geom} </fluid_from_geom>\n')
+        f.write(f'\t<fluid1>\n')
+        f.write(f'\t\t <x1> {args.fluid_1_init[0]} </x1> <y1> {args.fluid_1_init[1]} </y1> <z1> {args.fluid_1_init[2]} </z1>\n')
+        f.write(f'\t\t <x2> {args.fluid_1_init[3]} </x2> <y2> {args.fluid_1_init[4]} </y2> <z2> {args.fluid_1_init[5]} </z2>\n')
+        f.write(f'\t</fluid1>\n')
+        f.write(f'\t<fluid2>\n')
+        f.write(f'\t\t <x1> {args.fluid_2_init[0]} </x1> <y1> {args.fluid_2_init[1]} </y1> <z1> {args.fluid_2_init[2]} </z1>\n')
+        f.write(f'\t\t <x2> {args.fluid_2_init[3]} </x2> <y2> {args.fluid_2_init[4]} </y2> <z2> {args.fluid_2_init[5]} </z2>\n')
+        f.write(f'\t</fluid2>\n')
+        f.write('</init>\n\n')
+        
+        # Write fluid data
+        f.write('<fluids>\n')   
+        f.write(f'\t<Gc> {args.Gc} </Gc>\n')
+        f.write(f'\t<omega_f1> {args.omega_f1} </omega_f1>\n')
+        f.write(f'\t<omega_f2> {args.omega_f2} </omega_f2>\n')
+        f.write(f'\t<force_f1> {args.force_f1} </force_f1>\n')
+        f.write(f'\t<force_f2> {args.force_f2} </force_f2>\n')
+        f.write(f'\t<G_ads_f1_s1> {args.G_ads_f1_s1} </G_ads_f1_s1>\n')
+        f.write(f'\t<G_ads_f1_s2> {args.G_ads_f1_s2} </G_ads_f1_s2>\n')
+        f.write(f'\t<G_ads_f1_s3> {args.G_ads_f1_s3} </G_ads_f1_s3>\n')
+        f.write(f'\t<G_ads_f1_s4> {args.G_ads_f1_s4} </G_ads_f1_s4>\n')    
+        f.write(f'\t<rho_f1> {args.rho_f1} </rho_f1>\n')
+        f.write(f'\t<rho_f2> {args.rho_f2} </rho_f2>\n')    
+        f.write(f'\t<pressure_bc> {args.pressure_bc} </pressure_bc>\n')
+        f.write(f'\t<rho_f1_i> {args.rho_f1} </rho_f1_i>\n')
+        f.write(f'\t<rho_f2_i> {args.rho_f2} </rho_f2_i>\n')
+        f.write(f'\t<num_pc_steps> {num_pc_steps} </num_pc_steps>\n')
+        f.write(f'\t<min_radius> {minimum_radius} </min_radius>\n')
+        f.write(f'\t<rho_d> 0.06 </rho_d>\n')    
+        f.write('</fluids>\n\n')    
+        # Write output section
+        f.write('<output>\n')    
+        f.write(f'\t<out_folder> {output_folder} </out_folder>\n')
+        f.write(f'\t<save_it> {args.save_iter} </save_it>\n')
+        f.write(f'\t<save_sim> {args.save_sim} </save_sim>\n')
+        f.write(f'\t<convergence> {args.convergence} </convergence>\n')
+        f.write(f'\t<it_max> {args.max_iterations} </it_max>\n')
+        f.write(f'\t<it_conv> {args.convergence_iter} </it_conv>\n')
+        f.write(f'\t<it_gif> {args.gif_iter} </it_gif>\n')
+        f.write(f'\t<rho_vtk> {args.rho_f2_vtk} </rho_vtk>\n')
+        f.write(f'\t<it_vtk> {args.vtk_iter} </it_vtk>\n')
+        f.write(f'\t<print_geom> {args.print_geom} </print_geom>\n')
+        f.write(f'\t<print_stl> {args.print_stl} </print_stl>\n')    
+        f.write('</output>')
     return    

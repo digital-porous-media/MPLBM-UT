@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Create a virtual environment at the project root
+python -m venv .venv
+source .venv/bin/activate
+
 cd src
 unzip palabos-v2.2.1.zip
 
@@ -12,6 +16,10 @@ cmake ..
 make -j 2
 
 cd ../../
-python -m pip install --upgrade pip
-python -m pip install --upgrade setuptools
+pip install --upgrade pip setuptools
 pip install python/
+
+echo ""
+echo "Installation complete!"
+echo "Activate the virtual environment before running simulations:"
+echo "  source .venv/bin/activate"
