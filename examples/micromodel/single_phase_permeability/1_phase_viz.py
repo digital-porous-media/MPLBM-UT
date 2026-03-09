@@ -1,18 +1,17 @@
+import matplotlib.pyplot as plt
 import numpy as np
-import vedo as vd
 import pyvista as pv
 import os
 import glob
-import sys
 import mplbm_utils as mplbm
 
 
 def get_velocity_files(inputs):
 
-    tmp_folder = inputs['input output']['output folder']
+    tmp_folder = inputs["input output"]["output folder"]
 
-    # Get all the density files
-    vel_files_regex = fr'{tmp_folder}vtk_vel*.vti'
+    # Get all the velocity files
+    vel_files_regex = rf"{tmp_folder}vtk_vel*.vti"
     vel_files = glob.glob(vel_files_regex)
 
     # Sort for correct order
@@ -21,68 +20,78 @@ def get_velocity_files(inputs):
     return vel_files_list
 
 
-def visualize_medium(inputs):
+def get_slice_of_medium(inputs, slice):
 
-    input_folder = inputs['input output']['input folder']
-    output_folder = inputs['input output']['output folder']
-    nx = inputs['domain']['domain size']['nx']
-    ny = inputs['domain']['domain size']['ny']
-    nz = inputs['domain']['domain size']['nz']
-    n_slices = inputs['domain']['inlet and outlet layers']
-    print(f"{n_slices=}")
+    output_folder = inputs["input output"]["output folder"]
+    nx = inputs["domain"]["domain size"]["nx"]
+    ny = inputs["domain"]["domain size"]["ny"]
+    nz = inputs["domain"]["domain size"]["nz"]
+    n_slices = inputs["domain"]["inlet and outlet layers"]
+
     medium = pv.read(f"{output_folder}PorousMedium000001.vti")
-    grains = medium.get_array('tag').reshape([nz, ny, nx+(n_slices*2)])
-    grains = grains[:, :, n_slices:nx+n_slices]
-    grains = vd.Volume(grains).isosurface(0.5)
+    grains = medium.get_array("tag").reshape([nz, ny, nx + n_slices * 2])
+    grains = grains[slice, :, n_slices : nx + n_slices]
 
     return grains
 
 
-def visualize_velocity(inputs, vel_file):
+def get_slice_of_velocity(inputs, vel_file, slice):
 
-    nx = inputs['domain']['domain size']['nx']
-    ny = inputs['domain']['domain size']['ny']
-    nz = inputs['domain']['domain size']['nz']
-    n_slices = inputs['domain']['inlet and outlet layers']
-    print(f"{n_slices=}")
+    nx = inputs["domain"]["domain size"]["nx"]
+    ny = inputs["domain"]["domain size"]["ny"]
+    nz = inputs["domain"]["domain size"]["nz"]
+    n_slices = inputs["domain"]["inlet and outlet layers"]
+
     vel_mesh = pv.read(vel_file)
-    print(vel_mesh.array_names)
-    vel_mesh = vel_mesh.get_array('velocityNorm').reshape([nz, ny, nx+n_slices*2])
-    print(np.amax(vel_mesh), np.amin(vel_mesh))
-    vel_mesh = vel_mesh[:, :, n_slices:nx]
-    vel_thresholds = np.linspace(np.amin(vel_mesh), np.amax(vel_mesh), 20)
-    vel = vd.Volume(vel_mesh).isosurface(value=vel_thresholds)
+    vel_data = vel_mesh.get_array("velocityNorm").reshape([nz, ny, nx + n_slices * 2])
+    vel_data = vel_data[slice, :, n_slices : nx + n_slices]
 
-    return vel
+    return vel_data
 
 
-# Get inputs
-input_file = 'input.yml'
-inputs = mplbm.parse_input_file(input_file)  # Parse inputs
-inputs['input output']['simulation directory'] = os.getcwd()  # Store current working directory
-#inputs['domain']['inlet and outlet layers'] = 1
-# Get density files
-vel_files_list = get_velocity_files(inputs)
+def plot_velocity(inputs, vel, medium):
 
-index = -1  # Choose last simulation output
+    nx = inputs["domain"]["domain size"]["nx"]
+    ny = inputs["domain"]["domain size"]["ny"]
 
-# Setup plotter
-vp = vd.Plotter(axes=9, bg='w', bg2='w', size=(1200,900), offscreen=True)
+    x = np.arange(0, nx, 1)
+    y = np.arange(0, ny, 1)
+    X, Y = np.meshgrid(x, y)
 
-# visualize medium
-grains = visualize_medium(inputs)
-vp += grains.lighting('glossy').phong().c('seashell').opacity(0.2)
+    vel_masked = np.where(medium > 0.5, np.nan, vel)
+    plt.contourf(X, Y, medium, levels=[0.5, 2], alpha=1, colors="gray")
+    cf = plt.contourf(X, Y, vel_masked, levels=20, cmap="turbo", alpha=0.9)
+    plt.colorbar(cf, label="Velocity [LBM Units]")
 
-# visualize velocity
-vel = visualize_velocity(inputs, vel_file=vel_files_list[index])
-vp += vel.cmap('turbo').lighting('glossy').opacity(0.6).add_scalarbar3d('Velocity [LBM Units]')  # .c('lightblue')
+    plt.gca().set_aspect("equal", adjustable="box")
 
-cam = dict(pos=(-85.32, 283.2, 150.6),
-           focalPoint=(53.64, 39.77, 36.63),
-           viewup=(0.2686, -0.2784, 0.9221),
-           distance=302.6,
-           clippingRange=(137.9, 487.7))
 
-#vp.show(camera=cam)
-vp.show(camera=cam).screenshot(f'velocity_viz.png', scale=1)
+if __name__ == "__main__":
+    # Get inputs
+    print(os.getcwd())
+    input_file = "input.yml"
 
+    inputs = mplbm.parse_input_file(input_file)  # Parse inputs
+    inputs["input output"][
+        "simulation directory"
+    ] = os.getcwd()  # Store current working directory
+
+    # Get velocity files
+    vel_files_list = get_velocity_files(inputs)
+
+    index = -1  # Choose last simulation output
+
+    # Slice index (middle z-slice)
+    nz = inputs["domain"]["domain size"]["nz"]
+    slice_idx = nz // 2
+
+    # Get slices
+    medium = get_slice_of_medium(inputs, slice_idx)
+    vel = get_slice_of_velocity(inputs, vel_file=vel_files_list[index], slice=slice_idx)
+
+    # Plot
+    plt.figure()
+    plot_velocity(inputs, vel, medium)
+    plt.axis("off")
+    plt.savefig("velocity_viz.png", dpi=300, bbox_inches="tight")
+    plt.show()
