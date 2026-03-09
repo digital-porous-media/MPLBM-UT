@@ -15,9 +15,9 @@ cd ../../1-phase_LBM/build
 cmake ..
 make -j 2
 
-cd ../../
+cd ../../..
 pip install --upgrade pip setuptools
-pip install python/
+pip install .
 
 echo ""
 echo "Installation complete!"

@@ -30,7 +30,11 @@ dependencies = [
     "matplotlib",
     "scikit-image",
     "pandas",
+    "moviepy",
 ]
 
+[tool.setuptools]
+package-dir = {"" = "src/python"}
+
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src/python"]

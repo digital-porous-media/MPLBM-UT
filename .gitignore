@@ -1,0 +1,45 @@
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# LBM outputs
+*.dat
+*.vti
+*.vtk
+*.gif
+*.raw
+*.xml
+*.txt
+*.npy
+*.stl
+*curve.png
+
+# compiled files
+*.o
+*.dblite
+
+# Cmake folders
+src/1-phase_LBM/build/*
+src/2-phase_LBM/build/*
+
+# Mac 
+.DS_Store
+
+# Emacs temp
+*~

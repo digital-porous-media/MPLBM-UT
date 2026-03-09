@@ -3,8 +3,8 @@ simulation type: "2-phase"  # "1-phase" or "2-phase"
 input output:
   # Full path to simulation directory 
   simulation directory: ""
-  input folder: "input/"
-  output folder: "tmp/"
+  input folder: "../input/"
+  output folder: "sim_output/"
 
 geometry:
   file name: "rg_theta30_phi30_micromodel.raw" # Name of the input geometry file
@@ -31,7 +31,7 @@ domain:
 
 simulation:
   
-  num procs: 40
+  num procs: 128
   
   restart sim: False  # Set to true if you would like to continue from a previous saved state
   

@@ -58,7 +58,7 @@ def run_2_phase_sim(inputs):
     print('Running 2-phase simulation...')
     num_procs = inputs['simulation']['num procs']
     input_dir = inputs['input output']['input folder']
-    simulation_command = f"mpirun -np {num_procs} ../../src/2-phase_LBM/ShanChen {input_dir}2_phase_sim_input.xml"
+    simulation_command = f"mpirun -np {num_procs} ../../../src/2-phase_LBM/ShanChen {input_dir}2_phase_sim_input.xml"
     file = open(f'{sim_directory}/{input_dir}run_shanchen_sim.sh', 'w')
     file.write(f'{simulation_command}')
     file.close()
@@ -96,7 +96,7 @@ def run_rel_perm_sim(inputs):
     num_procs = inputs['simulation']['num procs']
     input_dir = inputs['input output']['input folder']
     output_dir = inputs['input output']['output folder']
-    simulation_command = f"mpirun -np {num_procs} ../../src/1-phase_LBM/permeability {input_dir}relperm_input.xml"
+    simulation_command = f"mpirun -np {num_procs} ../../../src/1-phase_LBM/permeability {input_dir}relperm_input.xml"
     file = open(f'{sim_directory}/{input_dir}run_relperm_sim.sh', 'w')
     file.write(f'{simulation_command}')
     file.close()
@@ -146,19 +146,19 @@ micromodel_name = 'rg_theta30_phi30_micromodel.raw'
 data_type = 'uint8'
 drp_url = 'https://www.digitalrocksportal.org/projects/65/images/71075/download/'
 file_name = f'{input_folder}rg_theta30_phi30.raw'
-download_geometry(file_name, drp_url)
+#download_geometry(file_name, drp_url)
 
 # Rescale geometry
-print("Rescaling geometry...")
-geom = np.fromfile(file_name, dtype=data_type).reshape([501, 501, 501])
-scaled_geom = mplbm.scale_geometry(geom, 0.599, data_type)
-print(f"New geometry size = {scaled_geom.shape}")
+#print("Rescaling geometry...")
+#geom = np.fromfile(file_name, dtype=data_type).reshape([501, 501, 501])
+#scaled_geom = mplbm.scale_geometry(geom, 0.599, data_type)
+#print(f"New geometry size = {scaled_geom.shape}")
 
 # Create micromodel
-print("Creating micromodel...")
-micromodel = create_micromodel(scaled_geom, nx=200, ny=150, nz=5, slice_index=234, x_offset=0, y_offset=130)
-geom_file = input_folder + micromodel_name
-micromodel.flatten().tofile(geom_file)  # Note, use flatten() before writing! Otherwise, data not saved in correct order
+#print("Creating micromodel...")
+#micromodel = create_micromodel(scaled_geom, nx=200, ny=150, nz=5, slice_index=234, x_offset=0, y_offset=130)
+#geom_file = input_folder + micromodel_name
+#micromodel.flatten().tofile(geom_file)  # Note, use flatten() before writing! Otherwise, data not saved in correct order
 
 # Parse inputs
 input_file = 'input.yml'
